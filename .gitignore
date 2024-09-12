@@ -102,3 +102,6 @@ Icon?
 # Thumbnails
 .TemporaryItems
 .trashes
+
+
+poetry.lock

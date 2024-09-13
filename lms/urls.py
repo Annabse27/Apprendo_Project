@@ -1,10 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, LessonListCreateView, LessonDetailView
+from .views import CourseViewSet, LessonListCreateView, LessonDetailView, PaymentViewSet
+
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
-
+router.register(r'payments', PaymentViewSet)
 
 
 """

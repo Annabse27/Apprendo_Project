@@ -5,6 +5,14 @@ from rest_framework import generics
 from .models import Lesson
 from .serializers import LessonSerializer
 
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
+from users.models import Payment
+from .serializers import PaymentSerializer
+from .filters import PaymentFilter
+
+
+
 class CourseViewSet(viewsets.ModelViewSet):
     """
     Viewset для модели Course.
@@ -44,3 +52,12 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = PaymentFilter
+    ordering_fields = ['payment_date']  # Позволяем сортировать по дате оплаты
+    ordering = ['-payment_date']  # По умолчанию сортировка по дате оплаты (от новых к старым)

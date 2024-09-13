@@ -18,7 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-       path('admin/', admin.site.urls),
-       path('api/', include('lms.urls')),  # Подклучение маршрутов из lms для тестов
-   ]
+    path('admin/', admin.site.urls),
+    path('api/', include('lms.urls')),  # Маршруты для курсов и уроков
+    path('api/', include('users.urls')),  # Подключение маршрутов для пользователей
+    #path('api/', include('payments.urls')),  # Если платежи вынесены в отдельное приложение
+]
 

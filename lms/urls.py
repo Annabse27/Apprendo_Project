@@ -2,11 +2,11 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import CourseViewSet, LessonListCreateView, LessonDetailView, PaymentViewSet
 
-
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
 router.register(r'payments', PaymentViewSet)
 
+app_name = 'lms'  # Добавляем namespace для приложения LMS
 
 """
 URL-маршруты для управления курсами и уроками.
@@ -16,7 +16,6 @@ URL-маршруты для управления курсами и урокам�
 - /lessons/<int:pk>/ : маршруты для получения, обновления и удаления урока по ID.
 """
 urlpatterns = [
-
     path('', include(router.urls)),
     path('lessons/', LessonListCreateView.as_view(), name='lesson-list-create'),
     path('lessons/<int:pk>/', LessonDetailView.as_view(), name='lesson-detail'),

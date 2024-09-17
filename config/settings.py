@@ -49,15 +49,19 @@ INSTALLED_APPS = [
     'django_filters'
 ]
 
-#Настройка DRF
+
+# Подключаем аутентификационные классы DRF и SimpleJWT
 REST_FRAMEWORK = {
-       'DEFAULT_PERMISSION_CLASSES': [
-           'rest_framework.permissions.AllowAny',
-       ],
-        'DEFAULT_FILTER_BACKENDS': [
-            'django_filters.rest_framework.DjangoFilterBackend'
-        ],
-   }
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Аутентификация через JWT
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # По умолчанию требуется аутентификация
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',  # Фильтрация через Django Filter
+    ],
+}
 
 
 MIDDLEWARE = [
@@ -147,3 +151,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+

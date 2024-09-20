@@ -1,0 +1,33 @@
+[
+  {
+    "model": "lms.course",
+    "pk": 1,
+    "fields": {
+      "title": "Course 1",
+      "preview": "path/to/preview1.jpg",
+      "description": "Description of Course 1"
+    }
+  },
+  {
+    "model": "lms.lesson",
+    "pk": 1,
+    "fields": {
+      "title": "Lesson 1",
+      "description": "Description of Lesson 1",
+      "preview": "path/to/preview1.jpg",
+      "video_url": "http://example.com/video1",
+      "course": 1
+    }
+  },
+  {
+    "model": "lms.lesson",
+    "pk": 2,
+    "fields": {
+      "title": "Lesson 2",
+      "description": "Description of Lesson 2",
+      "preview": "path/to/preview2.jpg",
+      "video_url": "http://example.com/video2",
+      "course": 1
+    }
+  }
+]

@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import (
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 
+
 app_name = 'users'  # Добавляем namespace для приложения пользователей
 
 urlpatterns = [
@@ -19,4 +20,6 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Эндпоинт для регистрации
     path('register/', RegisterView.as_view(), name='register'),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+
 ]

@@ -9,7 +9,7 @@ from users.models import Payment
 from .filters import PaymentFilter
 
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsModerator
+from .permissions import IsModerator, IsOwner
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -27,27 +27,26 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
 
     def get_permissions(self):
-        print(f"Action: {self.action}")
-
-        """if self.action in ['list', 'retrieve']:
-            permission_classes = [IsAuthenticated]  # Доступ к просмотру для всех авторизованных
-        elif self.action in ['update', 'partial_update']:
-            permission_classes = [IsAuthenticated, IsModerator]  # Правка только модераторам
-        elif self.action in ['destroy', 'create']:
-            permission_classes = [IsAuthenticated]  # Запрещаем модераторам удаление и создание
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]"""
-
-        if self.action == 'create':
-            permission_classes = [IsAuthenticated, IsModerator]  # Проверяем оба: авторизацию и статус модератора
-        elif self.action in ['list', 'retrieve']:
-            permission_classes = [IsAuthenticated]
-        elif self.action in ['update', 'partial_update']:
+        if self.action in ['create']:
+            # Для создания объекта авторизация, но не модератор
             permission_classes = [IsAuthenticated, IsModerator]
-        elif self.action == 'destroy':
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            # Для обновления и удаления: авторизация, либо модератор, либо владелец
+            permission_classes = [IsAuthenticated, IsOwner]
+        elif self.action in ['list', 'retrieve']:
+            # Для просмотра: просто авторизация
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        # Привязываем владельца при создании курса
+        serializer.save(owner=self.request.user)
+
+
+class CourseUpdateAPIView(generics.UpdateAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
 
 
 class LessonListCreateView(generics.ListCreateAPIView):
@@ -62,13 +61,17 @@ class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
 
     def get_permissions(self):
-        if self.request.method == 'GET':
-            # Доступ к списку уроков для всех авторизованных пользователей
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            # Для обновления и удаления: проверяем, является ли пользователь владельцем или модератором
+            permission_classes = [IsAuthenticated, IsModerator | IsOwner]
+        else:
             permission_classes = [IsAuthenticated]
-        elif self.request.method == 'POST':
-            # Запрещаем модераторам создавать новые уроки
-            permission_classes = [IsAuthenticated]  # Здесь можно добавить специальное разрешение для создания, если нужно
         return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        # Привязываем владельца при создании урока
+        serializer.save(owner=self.request.user)
+
 
 
 

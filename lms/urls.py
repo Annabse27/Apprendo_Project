@@ -1,13 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, LessonListCreateView, LessonDetailView, PaymentViewSet
+from .views import CourseViewSet, CourseUpdateAPIView, LessonListCreateView, LessonDetailView, PaymentViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 # Используем DefaultRouter для маршрутов ViewSets
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
-#router.register(r'payments', PaymentViewSet)
+router.register(r'payments', PaymentViewSet)
 
 app_name = 'lms'  # Добавляем namespace для приложения LMS
 
@@ -30,6 +30,8 @@ urlpatterns = [
     path('lessons/', LessonListCreateView.as_view(), name='lesson-list-create'),
     path('lessons/<int:pk>/', LessonDetailView.as_view(), name='lesson-detail'),
 
+    # Маршруты для курсов
+    path('api/courses/<int:pk>/', CourseUpdateAPIView.as_view(), name='course-update')
 ]
 
 

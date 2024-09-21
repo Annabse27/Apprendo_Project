@@ -36,3 +36,48 @@ class ModeratorPermissionsTest(TestCase):
             'description': 'Course description'  # Добавляем обязательное поле
         })
         self.assertEqual(response.status_code, 201)  # Администратор должен иметь возможность создать курс
+
+
+
+class OwnerPermissionsTest(TestCase):
+    def setUp(self):
+        # Создаем двух пользователей
+        self.user1 = User.objects.create_user(email='user1@example.com', password='password1')
+        self.user2 = User.objects.create_user(email='user2@example.com', password='password2')
+
+        # Создаем курс от имени user1
+        self.course = Course.objects.create(title='User1 Course', description='Test', owner=self.user1)
+
+        # Устанавливаем клиент для API
+        self.client = APIClient()
+
+    def test_owner_can_edit_own_course(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.patch(reverse('lms:course-detail', args=[self.course.id]), {'title': 'Updated Title'})
+        self.assertEqual(response.status_code, 200)
+
+    #Злобный тест
+    def test_non_owner_cannot_edit_course(self):
+        # Авторизуем пользователя, который НЕ является владельцем и НЕ является модератором
+        self.client.force_authenticate(user=self.user2)
+
+        # Проверяем, что курс существует в базе данных
+        course_exists = Course.objects.filter(id=self.course.id).exists()
+        print(f"Course exists in the database: {course_exists}")
+        self.assertTrue(course_exists)
+
+        # Проверяем данные курса
+        course = Course.objects.get(id=self.course.id)
+        print(f"Course ID: {course.id}, Owner: {course.owner.email}, Title: {course.title}")
+
+        # Пытаемся изменить курс, который принадлежит другому пользователю (user1)
+        response = self.client.patch(reverse('lms:course-detail', args=[self.course.id]), {'title': 'New title'})
+
+        # Выводим статус и тело ответа для отладки
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.content}")
+
+        # Ожидаем статус 403 Forbidden
+        self.assertEqual(response.status_code, 403)
+
+

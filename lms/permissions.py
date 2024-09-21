@@ -22,3 +22,15 @@ class IsModerator(BasePermission):
             # Разрешаем просмотр (GET) и редактирование (PUT/PATCH)
             return True
         return True  # Для остальных пользователей разрешаем все действия
+
+
+
+class IsOwner(BasePermission):
+    """
+    Разрешение для владельцев объектов.
+    Пользователь может просматривать, редактировать и удалять только свои курсы и уроки.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # Проверяем, является ли пользователь владельцем объекта
+        return obj.owner == request.user

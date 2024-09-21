@@ -1,4 +1,8 @@
 from django.db import models
+from django.conf import settings
+
+
+#User = get_user_model()
 
 class Course(models.Model):
     """
@@ -12,6 +16,13 @@ class Course(models.Model):
     title = models.CharField(max_length=255)
     preview = models.ImageField(upload_to='courses/', blank=True, null=True)
     description = models.TextField()
+
+    # Добавляем поле владельца
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_courses'
+    )
 
     def __str__(self):
         """
@@ -39,6 +50,13 @@ class Lesson(models.Model):
     preview = models.ImageField(upload_to='lessons/', blank=True, null=True)
     video_url = models.URLField(max_length=255)
     course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE)
+    # Добавляем поле владельца
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # Используем AUTH_USER_MODEL, а не get_user_model()
+        on_delete=models.CASCADE,
+        related_name='owned_lessons'
+    )
+
 
     def __str__(self):
         """

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Lesson
+from .models import Course, Lesson, Subscription
 from users.models import Payment
 from .validators import validate_youtube_url  # Импортируем валидатор
 
@@ -38,9 +38,11 @@ class CourseSerializer(serializers.ModelSerializer):
     lessons_count = serializers.SerializerMethodField()
     lessons = LessonSerializer(many=True, read_only=True)
 
+    is_subscribed = serializers.SerializerMethodField()  # Поле для проверки подписки
+
     class Meta:
             model = Course
-            fields = ['id', 'title', 'preview', 'description', 'lessons_count', 'lessons']
+            fields = ['id', 'title', 'preview', 'description', 'lessons_count', 'lessons', 'is_subscribed']
 
     def get_lessons_count(self, obj):
         """
@@ -53,6 +55,13 @@ class CourseSerializer(serializers.ModelSerializer):
                     int: Количество уроков в данном курсе.
         """
         return obj.lessons.count()
+
+    def get_is_subscribed(self, obj):
+        # Получаем текущего пользователя из контекста запроса
+        user = self.context['request'].user
+        # Проверяем, есть ли подписка на этот курс у пользователя
+        return Subscription.objects.filter(user=user, course=obj).exists()
+
 
 
 

@@ -66,3 +66,18 @@ class Lesson(models.Model):
             str: Название урока.
         """
         return self.title
+
+
+class Subscription(models.Model):
+    """
+    Модель подписки на курс.
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscriptions')
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='subscribers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'course')  # Подписка уникальна для пары (пользователь, курс)
+
+    def __str__(self):
+        return f"{self.user} подписан на {self.course}"

@@ -1,6 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, CourseUpdateAPIView, LessonListCreateView, LessonDetailView, PaymentViewSet
+from .views import (
+    CourseViewSet, CourseUpdateAPIView,
+    LessonListCreateView, LessonDetailView,
+    PaymentViewSet, CourseSubscriptionAPIView
+)
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
@@ -31,7 +35,11 @@ urlpatterns = [
     path('lessons/<int:pk>/', LessonDetailView.as_view(), name='lesson-detail'),
 
     # Маршруты для курсов
-    path('api/courses/<int:pk>/', CourseUpdateAPIView.as_view(), name='course-update')
+    path('api/courses/<int:pk>/', CourseUpdateAPIView.as_view(), name='course-update'),
+
+    # Подписка
+    path('subscribe/', CourseSubscriptionAPIView.as_view(), name='course-subscription'),
+
 ]
 
 

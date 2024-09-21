@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Course, Lesson
 from users.models import Payment
+from .validators import validate_youtube_url  # Импортируем валидатор
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -15,9 +16,11 @@ class LessonSerializer(serializers.ModelSerializer):
         video_url (str): URL-адрес видеоурока.
         course (int): Идентификатор курса, к которому относится урок.
     """
+    video_url = serializers.URLField(validators=[validate_youtube_url])  # Добавляем валидатор
+
     class Meta:
         model = Lesson
-        fields = ['id', 'title', 'description', 'preview', 'video_url', 'course']
+        fields = ['id', 'title', 'description', 'preview', 'video_url', 'course', 'owner']
 
 
 

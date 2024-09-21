@@ -16,6 +16,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+# Импорты для пагинации
+from .paginators import CustomPageNumberPagination
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -31,6 +33,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     """
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
 
     def get_permissions(self):
         if self.action in ['create']:
@@ -65,6 +68,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
     """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+    pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
@@ -145,3 +149,5 @@ class PaymentViewSet(viewsets.ModelViewSet):
     filterset_class = PaymentFilter
     ordering_fields = ['payment_date']  # Позволяем сортировать по дате оплаты
     ordering = ['-payment_date']  # По умолчанию сортировка по дате оплаты (от новых к старым)
+
+

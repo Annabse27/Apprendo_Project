@@ -146,3 +146,24 @@ class SubscriptionTest(TestCase):
 
         # Проверяем, что подписка удалена
         self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())
+
+
+# Тесты на наличие корректных полей пагинации в ответе
+class PaginationTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(email='user@example.com', password='password')
+        self.client.force_authenticate(user=self.user)
+
+        # Создаем несколько курсов
+        for i in range(15):
+            Course.objects.create(title=f'Курс {i+1}', description=f'Описание курса {i+1}', owner=self.user)
+
+    def test_course_pagination(self):
+        # Проверяем первый запрос с пагинацией по умолчанию
+        response = self.client.get(reverse('lms:course-list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('count', response.data)
+        self.assertIn('next', response.data)
+        self.assertIn('previous', response.data)
+        self.assertEqual(len(response.data['results']), 10)  # Убедитесь, что на странице 10 курсов

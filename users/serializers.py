@@ -4,19 +4,23 @@ from lms.serializers import PaymentSerializer  # Импортируем сери
 
 
 class UserSerializer(serializers.ModelSerializer):
-    payments = serializers.SerializerMethodField()  # Новое поле для платежей
+    payments = serializers.SerializerMethodField()  # Поле для платежей
+    password = serializers.CharField(write_only=True, required=True)  # Поле для пароля, write-only
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'phone', 'city', 'avatar', 'payments']  # Добавляем поле payments
-        extra_kwargs = {'password': {'write_only': True}}
-
+        fields = ['id', 'email', 'phone', 'city', 'avatar', 'payments', 'password']  # Добавляем поле password
 
     def create(self, validated_data):
-        # Создание нового пользователя с хэшированием пароля
-        user = User.objects.create_user(**validated_data)
+        # Извлекаем пароль из данных
+        password = validated_data.pop('password')
+        # Создаем нового пользователя без пароля
+        user = User(**validated_data)
+        # Хешируем и устанавливаем пароль
+        user.set_password(password)
+        # Сохраняем пользователя в базе данных
+        user.save()
         return user
-
 
     def get_payments(self, obj):
         """

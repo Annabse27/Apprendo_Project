@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from users.models import User
-from lms.models import Course, Subscription
+from lms.models import Course, Lesson, Subscription
 from django.contrib.auth.models import Group
 
 # Импорты для валидатора
@@ -21,8 +21,12 @@ class ModeratorPermissionsTest(TestCase):
         self.moderator.groups.add(self.moderator_group)
         self.moderator.save()
 
+        # Создаем курс для тестов
+        self.course = Course.objects.create(title='Test Course', description='Description', owner=self.admin)
+
         # Устанавливаем клиент
         self.client = APIClient()
+
 
     def test_moderator_create_course_forbidden(self):
         # Аутентифицируемся как модератор
@@ -33,6 +37,12 @@ class ModeratorPermissionsTest(TestCase):
         })
         self.assertEqual(response.status_code, 403)  # Модератору должно быть запрещено создавать курс
 
+    def test_moderator_delete_course_forbidden(self):
+        # Аутентифицируемся как модератор
+        self.client.force_authenticate(user=self.moderator)
+        response = self.client.delete(reverse('lms:course-detail', args=[self.course.id]))
+        self.assertEqual(response.status_code, 403)  # Модератору должно быть запрещено удалять курс
+
     def test_admin_create_course_success(self):
         # Аутентифицируемся как администратор
         self.client.force_authenticate(user=self.admin)
@@ -42,8 +52,47 @@ class ModeratorPermissionsTest(TestCase):
         })
         self.assertEqual(response.status_code, 201)  # Администратор должен иметь возможность создать курс
 
+    def test_admin_delete_course_success(self):
+        # Аутентифицируемся как администратор
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.delete(reverse('lms:course-detail', args=[self.course.id]))
+        self.assertEqual(response.status_code, 204)  # Администратор должен иметь возможность удалить курс
 
 
+
+#Тесты на фильтрацию курсов и уроков для обычных пользователей
+class CourseFilterTest(TestCase):
+    def setUp(self):
+        # Создаем двух пользователей
+        self.user1 = User.objects.create_user(email='user1@example.com', password='password1')
+        self.user2 = User.objects.create_user(email='user2@example.com', password='password2')
+
+        # Создаем курс от имени user1 и user2
+        self.course1 = Course.objects.create(title='User1 Course', description='Description', owner=self.user1)
+        self.course2 = Course.objects.create(title='User2 Course', description='Description', owner=self.user2)
+
+        # Устанавливаем клиент для API
+        self.client = APIClient()
+
+    def test_user1_can_see_only_own_courses(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get(reverse('lms:course-list'))
+        self.assertEqual(response.status_code, 200)
+        # Убедитесь, что возвращается только курс user1
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['title'], 'User1 Course')
+
+    def test_user2_can_see_only_own_courses(self):
+        self.client.force_authenticate(user=self.user2)
+        response = self.client.get(reverse('lms:course-list'))
+        self.assertEqual(response.status_code, 200)
+        # Убедитесь, что возвращается только курс user2
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['title'], 'User2 Course')
+
+
+
+#Owner Тесты
 class OwnerPermissionsTest(TestCase):
     def setUp(self):
         # Создаем двух пользователей
@@ -51,7 +100,7 @@ class OwnerPermissionsTest(TestCase):
         self.user2 = User.objects.create_user(email='user2@example.com', password='password2')
 
         # Создаем курс от имени user1
-        self.course = Course.objects.create(title='User1 Course', description='Test', owner=self.user1)
+        self.course = Course.objects.create(title='User1 Course', description='Description', owner=self.user1)
 
         # Устанавливаем клиент для API
         self.client = APIClient()
@@ -85,7 +134,15 @@ class OwnerPermissionsTest(TestCase):
         # Ожидаем статус 403 Forbidden
         self.assertEqual(response.status_code, 403)
 
+    def test_owner_can_delete_own_course(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.delete(reverse('lms:course-detail', args=[self.course.id]))
+        self.assertEqual(response.status_code, 204)  # Владелец должен иметь возможность удалить свой курс
 
+    def test_non_owner_cannot_delete_course(self):
+        self.client.force_authenticate(user=self.user2)
+        response = self.client.delete(reverse('lms:course-detail', args=[self.course.id]))
+        self.assertEqual(response.status_code, 403)  # Другой пользователь не может удалить чужой курс
 
 
 # Тесты для проверки валидатора
@@ -112,6 +169,37 @@ class ValidatorTest(TestCase):
             validate_youtube_url(valid_url)
         except ValidationError:
             self.fail("Валидная сокращённая ссылка YouTube вызвала ValidationError.")
+
+
+
+#Тесты на права модератора при работе с уроками
+class LessonModeratorPermissionsTest(TestCase):
+    def setUp(self):
+        # Создаем пользователя модератора и владельца
+        self.moderator = User.objects.create_user(email='moderator@example.com', password='passwordmoderator')
+        self.owner = User.objects.create_user(email='owner@example.com', password='passwordowner')
+
+        # Создаем группу модераторов и добавляем пользователя
+        self.moderator_group, _ = Group.objects.get_or_create(name='Модераторы')
+        self.moderator.groups.add(self.moderator_group)
+
+        # Создаем курс и урок для тестов
+        self.course = Course.objects.create(title='Test Course', description='Description', owner=self.owner)
+        self.lesson = Lesson.objects.create(title='Test Lesson', description='Lesson Description', owner=self.owner, course=self.course)
+
+        # Устанавливаем клиент
+        self.client = APIClient()
+
+    def test_moderator_cannot_delete_lesson(self):
+        self.client.force_authenticate(user=self.moderator)
+        response = self.client.delete(reverse('lms:lesson-detail', args=[self.lesson.id]))
+        self.assertEqual(response.status_code, 403)  # Модератору должно быть запрещено удалять урок
+
+    def test_moderator_can_edit_lesson(self):
+        self.client.force_authenticate(user=self.moderator)
+        response = self.client.patch(reverse('lms:lesson-detail', args=[self.lesson.id]), {'title': 'Updated Title'})
+        self.assertEqual(response.status_code, 200)  # Модератор может редактировать урок
+
 
 
 # Tесты для API подписок

@@ -21,35 +21,33 @@ from .paginators import CustomPageNumberPagination
 
 
 class CourseViewSet(viewsets.ModelViewSet):
-    """
-    Viewset для модели Course.
-
-    Обеспечивает CRUD операции для курсов:
-    - Список курсов.
-    - Получение одного курса.
-    - Создание нового курса.
-    - Обновление курса.
-    - Удаление курса.
-    """
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
+    pagination_class = CustomPageNumberPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name='Модераторы').exists():
+            # Модераторы видят все курсы
+            return Course.objects.all()
+        else:
+            # Обычные пользователи видят только свои курсы для списков
+            if self.action == 'list':
+                return Course.objects.filter(owner=user)
+            return Course.objects.all()  # Для других действий возвращаем все курсы, права проверяются на уровне объекта
 
     def get_permissions(self):
-        if self.action in ['create']:
-            # Для создания объекта авторизация, но не модератор
+        if self.action == 'create':
             permission_classes = [IsAuthenticated, IsModerator]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            # Для обновления и удаления: авторизация, либо модератор, либо владелец
-            permission_classes = [IsAuthenticated, IsOwner]
-        elif self.action in ['list', 'retrieve']:
-            # Для просмотра: просто авторизация
+            permission_classes = [IsAuthenticated, IsOwner]  # Только владелец может редактировать и удалять курс
+        else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
-        # Привязываем владельца при создании курса
         serializer.save(owner=self.request.user)
+
 
 
 class CourseUpdateAPIView(generics.UpdateAPIView):
@@ -59,56 +57,44 @@ class CourseUpdateAPIView(generics.UpdateAPIView):
 
 
 class LessonListCreateView(generics.ListCreateAPIView):
-    """
-    Представление для списка уроков и создания нового урока.
-
-    Методы:
-    - GET: Возвращает список всех уроков.
-    - POST: Создает новый урок (запрещено для модераторов).
-    """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name='Модераторы').exists():
+            # Модераторы видят все уроки
+            return Lesson.objects.all()
+        else:
+            # Обычные пользователи видят только свои уроки
+            return Lesson.objects.filter(owner=user)
+
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
-            # Для обновления и удаления: проверяем, является ли пользователь владельцем или модератором
             permission_classes = [IsAuthenticated, IsModerator | IsOwner]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
-        # Привязываем владельца при создании урока
         serializer.save(owner=self.request.user)
 
 
 
-
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Представление для получения, обновления и удаления одного урока.
-
-    Методы:
-    - GET: Возвращает данные одного урока.
-    - PUT: Полностью обновляет данные урока.
-    - PATCH: Частично обновляет данные урока.
-    - DELETE: Удаляет урок (запрещено для модераторов).
-    """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
 
     def get_permissions(self):
-        if self.request.method in ['GET']:
-            # Доступ к просмотру для всех авторизованных пользователей
-            permission_classes = [IsAuthenticated]
+        if self.request.method == 'DELETE':
+            # Запрещаем модераторам удаление уроков
+            permission_classes = [IsAuthenticated, IsOwner]  # Модераторы не могут удалять, только владельцы
         elif self.request.method in ['PUT', 'PATCH']:
             # Правка доступна только модераторам
             permission_classes = [IsAuthenticated, IsModerator]
-        elif self.request.method == 'DELETE':
-            # Запрещаем модераторам удаление уроков
-            permission_classes = [IsAuthenticated]  # Только администраторы или пользователи с особыми правами могут удалять
         else:
+            # Для всех других методов, включая просмотр
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 

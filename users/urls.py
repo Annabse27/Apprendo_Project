@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, RegisterView
+from .views import UserViewSet, RegisterView, CreatePaymentView
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -21,5 +22,5 @@ urlpatterns = [
     # Эндпоинт для регистрации
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-
+    path('create-payment/', CreatePaymentView.as_view(), name='create-payment'),
 ]

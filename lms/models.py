@@ -7,17 +7,15 @@ from django.conf import settings
 class Course(models.Model):
     """
     Модель, представляющая курс.
-
-    Атрибуты:
-        title (CharField): Название курса, длина до 255 символов.
-        preview (ImageField): Превью курса, изображение, может быть пустым или отсутствовать.
-        description (TextField): Описание курса, текстовое поле.
     """
+
     title = models.CharField(max_length=255)
     preview = models.ImageField(upload_to='courses/', blank=True, null=True)
     description = models.TextField()
 
-    # Добавляем поле владельца
+    # Добавляем поле цены курса
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -25,13 +23,8 @@ class Course(models.Model):
     )
 
     def __str__(self):
-        """
-        Возвращает строковое представление курса, которое отображает название курса.
-
-        Returns:
-            str: Название курса.
-        """
         return self.title
+
 
 
 class Lesson(models.Model):

@@ -19,6 +19,10 @@ from django.shortcuts import get_object_or_404
 # Импорты для пагинации
 from .paginators import CustomPageNumberPagination
 
+from .tasks import send_course_update_email  # Импортируем задачу
+
+
+#--- Вьюхи для Курсов ---
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
@@ -55,6 +59,45 @@ class CourseUpdateAPIView(generics.UpdateAPIView):
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
+    def perform_update(self, serializer):
+        course = serializer.save()
+
+        # Получаем всех подписчиков на данный курс
+        subscribers = Subscription.objects.filter(course=course)
+        subscriber_emails = [subscription.user.email for subscription in subscribers]
+
+        if subscriber_emails:
+            # Запускаем асинхронную задачу по отправке писем
+            send_course_update_email.delay(course.title, subscriber_emails)
+
+class CourseSubscriptionAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Только авторизованные пользователи могут подписываться
+
+    def post(self, request, *args, **kwargs):
+        # Получаем пользователя из запроса
+        user = request.user
+        # Получаем id курса из данных запроса
+        course_id = request.data.get('course_id')
+        # Получаем объект курса, если не найден - вернется ошибка 404
+        course = get_object_or_404(Course, id=course_id)
+
+        # Проверяем, есть ли уже подписка на этот курс
+        subscription = Subscription.objects.filter(user=user, course=course)
+
+        if subscription.exists():
+            # Если подписка существует, удаляем ее
+            subscription.delete()
+            message = "Подписка удалена"
+        else:
+            # Если подписки нет, создаем ее
+            Subscription.objects.create(user=user, course=course)
+            message = "Подписка добавлена"
+
+        # Возвращаем ответ с сообщением
+        return Response({"message": message})
+
+
+#---Вьюхи для Уроков---
 
 class LessonListCreateView(generics.ListCreateAPIView):
     queryset = Lesson.objects.all()
@@ -100,33 +143,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-class CourseSubscriptionAPIView(APIView):
-    permission_classes = [IsAuthenticated]  # Только авторизованные пользователи могут подписываться
 
-    def post(self, request, *args, **kwargs):
-        # Получаем пользователя из запроса
-        user = request.user
-        # Получаем id курса из данных запроса
-        course_id = request.data.get('course_id')
-        # Получаем объект курса, если не найден - вернется ошибка 404
-        course = get_object_or_404(Course, id=course_id)
-
-        # Проверяем, есть ли уже подписка на этот курс
-        subscription = Subscription.objects.filter(user=user, course=course)
-
-        if subscription.exists():
-            # Если подписка существует, удаляем ее
-            subscription.delete()
-            message = "Подписка удалена"
-        else:
-            # Если подписки нет, создаем ее
-            Subscription.objects.create(user=user, course=course)
-            message = "Подписка добавлена"
-
-        # Возвращаем ответ с сообщением
-        return Response({"message": message})
-
-
+#--- Вьюхи для Оплаты ---
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()

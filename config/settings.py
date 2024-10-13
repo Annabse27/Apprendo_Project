@@ -14,6 +14,7 @@ from pathlib import Path
 from decouple import config
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -176,6 +177,14 @@ INSTALLED_APPS += ['django_celery_beat']
 
 # Для автоматического сохранения расписаний при изменении периодических задач
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+CELERY_BEAT_SCHEDULE = {
+       'block-inactive-users-every-day': {
+           'task': 'users.tasks.block_inactive_users',
+           'schedule': timedelta(days=1),  # Запускать задачу каждый день
+           'options': {'timezone': 'Europe/Paris'},  # Убедитесь, что таймзоны совпадают
+       },
+   }
 
 
 load_dotenv()

@@ -1,4 +1,3 @@
-```plaintext
 # Python
 __pycache__/
 *.py[cod]
@@ -31,9 +30,6 @@ staticfiles/
 *.sublime-project
 *.sublime-workspace
 
-# Byte-compiled / optimized / DLL files
-*.py[cod]
-
 # Distribution / packaging
 .Python
 build/
@@ -54,10 +50,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -76,17 +68,13 @@ coverage.xml
 
 # Environments
 .env
+
 #.env.*
 .venv
-venv/
-ENV/
 env.bak/
-env/
 
 # Logs and databases
-*.log
 *.sql
-*.sqlite3
 *.db
 
 # Jupyter Notebook
@@ -102,6 +90,5 @@ Icon?
 # Thumbnails
 .TemporaryItems
 .trashes
-
 
 poetry.lock

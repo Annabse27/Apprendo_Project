@@ -92,3 +92,6 @@ Icon?
 .trashes
 
 poetry.lock
+
+#чтобы не забивать репозиторий отчетами
+coverage_report/

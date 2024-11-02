@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "Devoirs24Project"
+name = "Apprendo_Project"
 version = "0.1.0"
-description = "devoirs"
+description = "self-learning platform"
 authors = ["Annabse27 <annabse27@gmail.com>"]
 readme = "README.md"
 
@@ -22,6 +22,9 @@ redis = "^5.1.1"
 django-celery-beat = "^2.7.0"
 python-dotenv = "^1.0.1"
 kombu = "^5.4.2"
+flake8 = "^7.1.1"
+autopep8 = "^2.3.1"
+django-nested-admin = "^4.1.1"
 
 
 [tool.poetry.group.dev.dependencies]

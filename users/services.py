@@ -4,6 +4,7 @@ from django.conf import settings
 # Устанавливаем секретный ключ для работы с Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
 def create_stripe_product(course):
     """Создает продукт в Stripe на основе курса."""
     product = stripe.Product.create(
@@ -11,6 +12,7 @@ def create_stripe_product(course):
         description=course.description
     )
     return product.id
+
 
 def create_stripe_price(product_id, course_price):
     """Создает цену в Stripe для данного продукта."""
@@ -20,6 +22,7 @@ def create_stripe_price(product_id, course_price):
         currency="usd",
     )
     return price.id
+
 
 def create_stripe_checkout_session(price_id, user_email, success_url, cancel_url):
     """Создает сессию для оплаты в Stripe."""

@@ -8,6 +8,7 @@ class UserManager(BaseUserManager):
     """
     Менеджер для кастомной модели пользователя.
     """
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
@@ -50,7 +51,6 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
 
-
 class Payment(models.Model):
     """
     Модель, представляющая платежи пользователей.
@@ -81,3 +81,7 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Платеж {self.user} - {self.amount} {self.payment_method}"
+
+    class Meta:
+        verbose_name = 'Платеж'
+        verbose_name_plural = 'Платежи'

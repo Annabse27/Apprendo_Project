@@ -3,17 +3,15 @@ from .models import User
 from .serializers import UserSerializer
 
 from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-#Импорты для платежей
+# Импорты для платежей
 from django.shortcuts import get_object_or_404
 from lms.models import Course
 from .models import Payment
 from .services import create_stripe_product, create_stripe_price, create_stripe_checkout_session
-
 
 
 class RegisterView(APIView):
@@ -43,7 +41,6 @@ class ProtectedView(APIView):
 
     def get(self, request):
         return Response({"message": "This is a protected view!"})
-
 
 
 class CreatePaymentView(APIView):

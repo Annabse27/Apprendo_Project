@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 import re
 
+
 def validate_youtube_url(value):
     """
     Проверяет, что ссылка принадлежит youtube.com.

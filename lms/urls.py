@@ -6,12 +6,18 @@ from .views import (
     PaymentViewSet, CourseSubscriptionAPIView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import TestViewSet, QuestionViewSet, AnswerViewSet
 
 
 # Используем DefaultRouter для маршрутов ViewSets
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
 router.register(r'payments', PaymentViewSet)
+
+router.register(r'tests', TestViewSet, basename='test')
+router.register(r'questions', QuestionViewSet, basename='question')
+router.register(r'answers', AnswerViewSet, basename='answer')
+
 
 app_name = 'lms'  # Добавляем namespace для приложения LMS
 
@@ -41,5 +47,3 @@ urlpatterns = [
     path('subscribe/', CourseSubscriptionAPIView.as_view(), name='course-subscription'),
 
 ]
-
-

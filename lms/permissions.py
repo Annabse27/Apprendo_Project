@@ -1,45 +1,90 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+from .models import Course, Lesson
+
+
+class IsOwnerAndUnapproved(BasePermission):
+    """
+    Разрешение для владельцев неутвержденных курсов и уроков.
+    Разрешает доступ, если пользователь является владельцем и объект не утвержден.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # Проверка для курсов
+        if isinstance(obj, Course):
+            is_owner = obj.owner == request.user
+            is_unapproved = obj.status == 'unapproved'
+            return is_owner and is_unapproved
+        # Проверка для уроков
+        elif isinstance(obj, Lesson):
+            is_owner = obj.owner == request.user
+            is_unapproved = obj.status == 'unapproved'
+            return is_owner and is_unapproved
+        return False
+
+
+class IsOwnerOrUnapproved(BasePermission):
+    """
+    Разрешение, позволяющее доступ только владельцу объекта или для неутвержденных объектов.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # Проверка владельца для всех объектов
+        is_owner = obj.owner == request.user
+
+        # Проверка статуса (например, если объект - курс)
+        is_unapproved = hasattr(obj, 'status') and obj.status == 'unapproved'
+
+        # Условие: либо пользователь является владельцем, либо объект не утвержден
+        return is_owner or is_unapproved
+
+
+class IsOwnerOrReadOnly(BasePermission):
+    """
+    Разрешает редактировать объект только владельцу, для остальных доступен только просмотр.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # Просмотр (GET, HEAD, OPTIONS) разрешен для всех аутентифицированных
+        if request.method in SAFE_METHODS:
+            return True
+        # Изменение разрешено только владельцу
+        return obj.owner == request.user
+
+
+class IsTeacher(BasePermission):
+    """
+    Разрешение для Преподавателя. Доступ только к своим материалам.
+    """
+
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='Преподаватель').exists() or request.user.is_superuser
+
+    def has_object_permission(self, request, view, obj):
+        return obj.owner == request.user or request.user.is_superuser
 
 
 class IsModerator(BasePermission):
     """
-    Класс разрешений для модераторов.
-    Модераторам запрещено создавать и удалять курсы и уроки,
-    но разрешено редактировать их.
+    Модератор может редактировать, но не удалять курсы и уроки.
     """
 
     def has_permission(self, request, view):
-        is_moderator = request.user.groups.filter(name='Модераторы').exists()
-
-        # Логи для проверки
-        print(f"User: {request.user}, Method: {request.method}, Is Moderator: {is_moderator}")
-
-        if is_moderator:
-            # Запрещаем создание (POST) и удаление (DELETE) курсов и уроков
-            if request.method == 'POST' or request.method == 'DELETE':
-                return False
-            # Разрешаем просмотр (GET) и редактирование (PUT/PATCH)
-            return True
-        return True  # Для остальных пользователей разрешаем все действия
+        return request.user.groups.filter(name='Модераторы').exists() or request.user.is_superuser
 
     def has_object_permission(self, request, view, obj):
-        # Модераторы могут редактировать, но не удалять объекты
-        is_moderator = request.user.groups.filter(name='Модераторы').exists()
-        if is_moderator:
-            if request.method == 'DELETE':
-                return False
-            return True
-        return True
+        if request.method == 'DELETE':
+            return False  # Запрещаем модераторам удаление объектов
+        return True  # Разрешаем редактирование и просмотр
 
 
+class IsStudent(BasePermission):
+    """
+    Разрешение для Студента.
+    Доступ только на чтение для просмотра материалов.
+    """
 
-class IsOwner(BasePermission):
-   """
-   Разрешение для владельцев объектов.
-   Пользователь может просматривать, редактировать и удалять только свои курсы и уроки.
-   """
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name='Студент').exists()
 
-
-   def has_object_permission(self, request, view, obj):
-       # Проверяем, является ли пользователь владельцем объекта
-       return obj.owner == request.user
+    def has_object_permission(self, request, view, obj):
+        return request.method in ['GET', 'HEAD', 'OPTIONS']

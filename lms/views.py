@@ -8,8 +8,8 @@ from rest_framework.filters import OrderingFilter
 from users.models import Payment
 from .filters import PaymentFilter
 
+from .permissions import IsTeacher, IsStudent, IsModerator, IsOwnerAndUnapproved, IsOwnerOrReadOnly
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsModerator, IsOwner
 
 # Импорты для подписки
 from rest_framework.views import APIView
@@ -21,43 +21,60 @@ from .paginators import CustomPageNumberPagination
 
 from .tasks import send_course_update_email  # Импортируем задачу
 
+# УЧЕБНЫЕ ТЕСТЫ
+from .models import Test, Question, Answer
+from .serializers import TestSerializer, QuestionSerializer, AnswerSerializer
+from .permissions import IsOwnerOrUnapproved
 
-#--- Вьюхи для Курсов ---
+# --- Вьюхи для Курсов ---
+
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     pagination_class = CustomPageNumberPagination
 
-    def get_queryset(self):
-        user = self.request.user
-        if user.groups.filter(name='Модераторы').exists():
-            # Модераторы видят все курсы
-            return Course.objects.all()
-        else:
-            # Обычные пользователи видят только свои курсы для списков
-            if self.action == 'list':
-                return Course.objects.filter(owner=user)
-            return Course.objects.all()  # Для других действий возвращаем все курсы, права проверяются на уровне объекта
-
-    def get_permissions(self):
-        if self.action == 'create':
-            permission_classes = [IsAuthenticated, IsModerator]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsAuthenticated, IsOwner]  # Только владелец может редактировать и удалять курс
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
-
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            queryset = Course.objects.all()
+        elif user.groups.filter(name='Модераторы').exists():
+            queryset = Course.objects.all()
+        elif user.groups.filter(name='Преподаватель').exists():
+            queryset = Course.objects.filter(owner=user)
+        elif user.groups.filter(name='Студент').exists():
+            queryset = Course.objects.filter(status='approved')
+        else:
+            queryset = Course.objects.none()
+
+        # Отладочный вывод для студента
+        if user.groups.filter(name='Студент').exists():
+            print(f"Student view: Total approved courses accessible: {queryset.count()}")
+        return queryset
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'create':
+            permission_classes = [IsAuthenticated, IsTeacher]
+        elif self.action in ['update', 'partial_update']:
+            # Преподаватели могут редактировать только свои неутвержденные курсы
+            permission_classes = [IsAuthenticated, IsModerator | IsOwnerAndUnapproved]
+        elif self.action == 'destroy':
+            # Преподаватели могут удалять только свои неутвержденные курсы
+            permission_classes = [IsAuthenticated, IsOwnerAndUnapproved]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
 
 class CourseUpdateAPIView(generics.UpdateAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerAndUnapproved]
 
     def perform_update(self, serializer):
         course = serializer.save()
@@ -69,6 +86,7 @@ class CourseUpdateAPIView(generics.UpdateAPIView):
         if subscriber_emails:
             # Запускаем асинхронную задачу по отправке писем
             send_course_update_email.delay(course.title, subscriber_emails)
+
 
 class CourseSubscriptionAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Только авторизованные пользователи могут подписываться
@@ -97,32 +115,33 @@ class CourseSubscriptionAPIView(APIView):
         return Response({"message": message})
 
 
-#---Вьюхи для Уроков---
+# ---Вьюхи для Уроков---
+
 
 class LessonListCreateView(generics.ListCreateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
         user = self.request.user
         if user.groups.filter(name='Модераторы').exists():
-            # Модераторы видят все уроки
             return Lesson.objects.all()
-        else:
-            # Обычные пользователи видят только свои уроки
+        elif user.groups.filter(name='Преподаватель').exists():
             return Lesson.objects.filter(owner=user)
+        elif user.groups.filter(name='Студент').exists():
+            return Lesson.objects.filter(course__owner__groups__name='Администратор')  # Только админские курсы
+        return Lesson.objects.none()
 
     def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
-            permission_classes = [IsAuthenticated, IsModerator | IsOwner]
+        if self.request.method == 'POST':
+            permission_classes = [IsAuthenticated, IsTeacher]  # Только преподаватели могут создавать
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsAuthenticated, IsStudent | IsTeacher | IsModerator]
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
-
 
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -131,20 +150,18 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method == 'DELETE':
-            # Запрещаем модераторам удаление уроков
-            permission_classes = [IsAuthenticated, IsOwner]  # Модераторы не могут удалять, только владельцы
+            # Только владельцы могут удалять уроки
+            permission_classes = [IsAuthenticated, IsOwnerAndUnapproved]
         elif self.request.method in ['PUT', 'PATCH']:
-            # Правка доступна только модераторам
-            permission_classes = [IsAuthenticated, IsModerator]
+            # Модераторы и владельцы могут редактировать уроки
+            permission_classes = [IsAuthenticated, IsModerator | IsOwnerAndUnapproved]
         else:
-            # Для всех других методов, включая просмотр
+            # Доступ для просмотра урока
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
 
-
-
-#--- Вьюхи для Оплаты ---
+# --- Вьюхи для Оплаты ---
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
@@ -155,3 +172,39 @@ class PaymentViewSet(viewsets.ModelViewSet):
     ordering = ['-payment_date']  # По умолчанию сортировка по дате оплаты (от новых к старым)
 
 
+# --- Вьюхи для УЧ ТЕСТОВ ---
+
+class TestViewSet(viewsets.ModelViewSet):
+    queryset = Test.objects.all()
+    serializer_class = TestSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrUnapproved]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name='Администратор').exists() or user.groups.filter(name='Преподаватель').exists():
+            return Test.objects.all()  # Администраторы и учителя видят все тесты
+        else:
+            # Студенты видят только утвержденные тесты
+            return Test.objects.filter(status="approved")
+
+    def perform_create(self, serializer):
+        print("Creating test with data:", serializer.validated_data)  # Отладочный вывод
+        serializer.save(owner=self.request.user)
+
+
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrUnapproved]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)  # Устанавливаем владельца как текущего пользователя
+
+
+class AnswerViewSet(viewsets.ModelViewSet):
+    queryset = Answer.objects.all()
+    serializer_class = AnswerSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)

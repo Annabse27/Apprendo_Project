@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
 from users.views import ProtectedView
-from django.urls import get_resolver
 
 
 # Импорты для документации
@@ -23,7 +22,7 @@ urlpatterns = [
 
 
 """def print_urls():
-    '''временная проверка всех доступных маршрутов, 
+    '''временная проверка всех доступных маршрутов,
     чтобы убедиться, что маршрут для документации был зарегистрирован'''
     urls = get_resolver().url_patterns
     for url in urls:
@@ -33,5 +32,4 @@ print_urls()  # Вывод всех маршрутов в консоль
 """
 
 
-
-#'api/lms/'
+# 'api/lms/'

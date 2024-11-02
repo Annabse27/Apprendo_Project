@@ -12,5 +12,3 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Автоматически обнаруживаем задачи из всех зарегистрированных приложений
 app.autodiscover_tasks()
-
-

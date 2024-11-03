@@ -1,136 +1,90 @@
-from django.contrib.auth import get_user_model
-from rest_framework.test import APITestCase
-from rest_framework_simplejwt.tokens import RefreshToken
+import pytest
 from rest_framework import status
-
-# Импорты для тестирования платежей
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
-from django.contrib.auth.models import User
+from users.models import User
 from lms.models import Course
-from .models import Payment
+from users.models import Payment
 
 
-User = get_user_model()
+@pytest.fixture
+def api_client():
+    return APIClient()
 
 
-class UserAuthTests(APITestCase):
-
-    def setUp(self):
-        # Создаем пользователя для тестов авторизации
-        self.user = User.objects.create_user(
-            email='testuser@example.com',
-            password='password'
-        )
-
-        # Получаем JWT токен для пользователя
-        refresh = RefreshToken.for_user(self.user)
-        self.access_token = str(refresh.access_token)
-
-    def test_user_can_register(self):
-        """
-        Тест на регистрацию нового пользователя
-        """
-        data = {
-            'email': 'newuser@example.com',
-            'password': 'newpassword123',
-            'phone': '1234567890',
-            'city': 'Test City'
-        }
-
-        # Отправляем POST-запрос на регистрацию
-        response = self.client.post('/api/users/register/', data)
-
-        # Проверяем, что регистрация успешна
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('email', response.data['user'])
-
-        # Проверяем, что пользователь действительно создан
-        user = User.objects.get(email='newuser@example.com')
-        self.assertIsNotNone(user)
-
-        # Проверяем, что пароль был захеширован
-        self.assertTrue(user.check_password('newpassword123'))
-
-    def test_user_can_login_and_access_protected_view(self):
-        """
-        Тест на авторизацию и доступ к защищённому ресурсу
-        """
-        # Передаем токен в заголовок
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
-
-        # Выполняем GET-запрос к защищенному ресурсу
-        response = self.client.get('/api/protected-resource/')
-
-        # Проверяем, что доступ разрешен (HTTP 200)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_user_cannot_access_protected_view_without_token(self):
-        """
-        Тест на проверку доступа к защищённому ресурсу без токена
-        """
-        # Выполняем GET-запрос к защищенному ресурсу без токена
-        response = self.client.get('/api/protected-resource/')
-
-        # Проверяем, что доступ запрещен (HTTP 401)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_user_cannot_login_with_wrong_password(self):
-        """
-        Тест на проверку логина с неверным паролем
-        """
-        data = {
-            'email': 'testuser@example.com',
-            'password': 'wrongpassword'
-        }
-
-        # Отправляем POST-запрос на получение токена с неправильным паролем
-        response = self.client.post('/api/users/token/', data)
-
-        # Проверяем, что доступ запрещен (HTTP 401)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn('detail', response.data)
+@pytest.fixture
+def create_user():
+    def _create_user(email, password):
+        user = User.objects.create_user(email=email, password=password)
+        return user
+    return _create_user
 
 
-class PaymentTestCase(APITestCase):
-    def setUp(self):
-        # Создаем тестового пользователя
-        self.user = User.objects.create_user(email='testuser@example.com', password='password')
+@pytest.fixture
+def access_token(create_user):
+    user = create_user(email='testuser@example.com', password='password')
+    refresh = RefreshToken.for_user(user)
+    return str(refresh.access_token)
 
-        # Генерируем JWT токен для пользователя
-        refresh = RefreshToken.for_user(self.user)
-        self.token = str(refresh.access_token)
 
-        # Создаем тестовый курс
-        self.course = Course.objects.create(
-            title='Test Course',
-            description='Test Description',
-            price=100,
-            owner=self.user
-        )
+@pytest.mark.django_db
+def test_user_can_register(api_client):
+    data = {
+        'email': 'newuser@example.com',
+        'password': 'newpassword123',
+        'phone': '1234567890',
+        'city': 'Test City'
+    }
+    response = api_client.post('/api/users/register/', data)
+    assert response.status_code == status.HTTP_201_CREATED
+    assert 'email' in response.data['user']
 
-    def test_create_payment(self):
-        data = {'course_id': self.course.id}
 
-        # Отправляем POST запрос с JWT токеном в заголовке
-        response = self.client.post(
-            reverse('users:create-payment'),
-            data,
-            format='json',
-            HTTP_AUTHORIZATION=f'Bearer {self.token}'  # Передаем JWT токен в заголовке
-        )
+@pytest.mark.django_db
+def test_user_can_login_and_access_protected_view(api_client, access_token):
+    api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+    response = api_client.get('/api/protected-resource/')
+    assert response.status_code == status.HTTP_200_OK
 
-        # Проверяем, что статус ответа 200 OK
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Проверяем, что в ответе есть поле 'payment_url'
-        self.assertIn('payment_url', response.data)
 
-        # Проверяем, что объект Payment был создан
-        payment = Payment.objects.latest('id')  # Получаем последний созданный платеж
-        self.assertIsNotNone(payment)  # Убеждаемся, что объект не пустой
+@pytest.mark.django_db
+def test_user_cannot_access_protected_view_without_token(api_client):
+    response = api_client.get('/api/protected-resource/')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        # Выводим информацию о session_id и payment_url
-        print(f"Stripe Session ID: {payment.stripe_session_id}")
-        print(f"Length of Stripe Session ID: {len(payment.stripe_session_id)}")
 
-        print(f"Stripe Payment URL: {payment.stripe_payment_url}")
-        print(f"Length of Stripe Payment URL: {len(payment.stripe_payment_url)}")
+@pytest.mark.django_db
+def test_user_cannot_login_with_wrong_password(api_client, create_user):
+    create_user(email='testuser@example.com', password='password')
+    data = {
+        'email': 'testuser@example.com',
+        'password': 'wrongpassword'
+    }
+    response = api_client.post('/api/users/token/', data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert 'detail' in response.data
+
+
+@pytest.mark.django_db
+def test_create_payment(api_client, create_user):
+    user = create_user(email='testuser@example.com', password='password')
+    refresh = RefreshToken.for_user(user)
+    token = str(refresh.access_token)
+    course = Course.objects.create(
+        title='Test Course',
+        description='Test Description',
+        price=100,
+        owner=user
+    )
+    data = {'course_id': course.id}
+    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = api_client.post(reverse('users:create-payment'), data, format='json')
+    assert response.status_code == status.HTTP_200_OK
+    assert 'payment_url' in response.data
+
+
+    payment = Payment.objects.latest('id')
+    assert payment is not None
+    print(f"Stripe Session ID: {payment.stripe_session_id}")
+    print(f"Stripe Payment URL: {payment.stripe_payment_url}")

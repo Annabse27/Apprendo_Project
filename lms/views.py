@@ -25,6 +25,7 @@ from .tasks import send_course_update_email  # Импортируем задач
 from .models import Test, Question, Answer
 from .serializers import TestSerializer, QuestionSerializer, AnswerSerializer
 from .permissions import IsOwnerOrUnapproved
+from django.core.exceptions import PermissionDenied
 
 # --- Вьюхи для Курсов ---
 
@@ -177,19 +178,21 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrUnapproved]
+    permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_queryset(self):
         user = self.request.user
-        if user.groups.filter(name='Администратор').exists() or user.groups.filter(name='Преподаватель').exists():
-            return Test.objects.all()  # Администраторы и учителя видят все тесты
-        else:
-            # Студенты видят только утвержденные тесты
-            return Test.objects.filter(status="approved")
+        if user.groups.filter(name__in=['Администратор', 'Преподаватель']).exists():
+            return Test.objects.all()  # Все тесты для админов и преподавателей
+        return Test.objects.filter(status="approved")  # Только утвержденные тесты для остальных
 
     def perform_create(self, serializer):
-        print("Creating test with data:", serializer.validated_data)  # Отладочный вывод
         serializer.save(owner=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        print(f"Retrieving Test with ID: {kwargs['pk']} for user {request.user}")
+        return super().retrieve(request, *args, **kwargs)
+
 
 
 class QuestionViewSet(viewsets.ModelViewSet):

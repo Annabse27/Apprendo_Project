@@ -1,0 +1,293 @@
+[
+  {
+    "model": "auth.group",
+    "pk": 1,
+    "fields": {
+      "name": "Преподаватель"
+    }
+  },
+  {
+    "model": "auth.group",
+    "pk": 2,
+    "fields": {
+      "name": "Модераторы"
+    }
+  },
+  {
+    "model": "auth.group",
+    "pk": 3,
+    "fields": {
+      "name": "Студент"
+    }
+  },
+  {
+    "model": "auth.group",
+    "pk": 4,
+    "fields": {
+      "name": "Администратор"
+    }
+  },
+  {
+    "model": "auth.group_permissions",
+    "pk": 1,
+    "fields": {
+      "group": 1,
+      "permission": 53
+    }
+  },
+  {
+    "model": "auth.group_permissions",
+    "pk": 2,
+    "fields": {
+      "group": 1,
+      "permission": 54
+    }
+  },
+  {
+    "model": "auth.group_permissions",
+    "pk": 3,
+    "fields": {
+      "group": 1,
+      "permission": 55
+    }
+  },
+  {
+    "model": "auth.group_permissions",
+    "pk": 4,
+    "fields": {
+      "group": 2,
+      "permission": 54
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "email": "admin@example.com",
+      "password": "hashed_password",
+      "is_superuser": true,
+      "is_staff": true,
+      "phone": "1234567890",
+      "city": "Admin City",
+      "avatar": "path/to/avatar.jpg"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "email": "teacher@example.com",
+      "password": "hashed_password",
+      "phone": "0987654321",
+      "city": "Teacher City",
+      "avatar": "path/to/avatar2.jpg"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+      "email": "student@example.com",
+      "password": "hashed_password",
+      "phone": "1234561234",
+      "city": "Student City",
+      "avatar": "path/to/avatar3.jpg"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+      "email": "manager@example.com",
+      "password": "hashed_password",
+      "phone": "3216549870",
+      "city": "Manager City",
+      "avatar": "path/to/avatar4.jpg"
+    }
+  },
+  {
+    "model": "lms.course",
+    "pk": 1,
+    "fields": {
+      "title": "Course 1",
+      "description": "Description of Course 1",
+      "status": "approved",
+      "price": "100.00",
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.lesson",
+    "pk": 1,
+    "fields": {
+      "title": "Lesson 1",
+      "description": "Description of Lesson 1",
+      "preview": "path/to/preview1.jpg",
+      "video_url": "http://example.com/video1",
+      "course": 1,
+      "owner": 2,
+      "status": "approved"
+    }
+  },
+  {
+    "model": "lms.subscription",
+    "pk": 1,
+    "fields": {
+      "user": 3,
+      "course": 1,
+      "created_at": "2024-11-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "lms.quizmodel",
+    "pk": 1,
+    "fields": {
+      "title": "Quiz 1",
+      "description": "Description of Quiz 1",
+      "status": "approved",
+      "course": 1,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.question",
+    "pk": 1,
+    "fields": {
+      "text": "What is 2+2?",
+      "question_type": "multiple_choice",
+      "test": 1,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 1,
+    "fields": {
+      "text": "4",
+      "is_correct": true,
+      "question": 1,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 2,
+    "fields": {
+      "text": "3",
+      "is_correct": false,
+      "question": 1,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.testresult",
+    "pk": 1,
+    "fields": {
+      "student": 3,
+      "test": 1,
+      "score": "100.00",
+      "completed_at": "2024-11-02T12:00:00Z"
+    }
+  },
+  {
+    "model": "lms.studentanswer",
+    "pk": 1,
+    "fields": {
+      "test_result": 1,
+      "question": 1,
+      "selected_answer": 1,
+      "is_approved": true
+    }
+  },
+  {
+    "model": "lms.quizmodel",
+    "pk": 2,
+    "fields": {
+      "title": "Quiz 2",
+      "description": "Description of Quiz 2",
+      "status": "approved",
+      "course": 1,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.question",
+    "pk": 2,
+    "fields": {
+      "text": "Select all prime numbers",
+      "question_type": "multiple_choice",
+      "test": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 3,
+    "fields": {
+      "text": "2",
+      "is_correct": true,
+      "question": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 4,
+    "fields": {
+      "text": "4",
+      "is_correct": false,
+      "question": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 5,
+    "fields": {
+      "text": "5",
+      "is_correct": true,
+      "question": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.question",
+    "pk": 3,
+    "fields": {
+      "text": "What is the capital of France?",
+      "question_type": "text",
+      "test": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.question",
+    "pk": 4,
+    "fields": {
+      "text": "What is 3x3?",
+      "question_type": "multiple_choice",
+      "test": 2,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 6,
+    "fields": {
+      "text": "9",
+      "is_correct": true,
+      "question": 4,
+      "owner": 2
+    }
+  },
+  {
+    "model": "lms.answer",
+    "pk": 7,
+    "fields": {
+      "text": "6",
+      "is_correct": false,
+      "question": 4,
+      "owner": 2
+    }
+  }
+]

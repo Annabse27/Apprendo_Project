@@ -72,7 +72,7 @@ class Subscription(models.Model):
 # УЧЕБНЫЕ ТЕСТЫ
 
 
-class Test(models.Model):
+class QuizModel(models.Model):
     """
             Модель для тестов, привязанных к курсу.
     """
@@ -88,8 +88,8 @@ class Test(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
 
     class Meta:
-        verbose_name = "Тест"
-        verbose_name_plural = "Тесты"
+        verbose_name = "Проверочный тест знаний"
+        verbose_name_plural = "Проверочные тесты знаний"
 
     def __str__(self):
         return self.title
@@ -105,7 +105,7 @@ class Question(models.Model):
     )
     text = models.CharField(max_length=255, verbose_name="Текст вопроса")
     question_type = models.CharField(max_length=50, choices=QUESTION_TYPES, verbose_name="Тип вопроса")
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="questions", verbose_name="Тест")
+    test = models.ForeignKey(QuizModel, on_delete=models.CASCADE, related_name="questions", verbose_name="Тест")
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -149,7 +149,7 @@ class TestResult(models.Model):
     Модель для хранения результатов прохождения тестов студентами.
     """
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='test_results', verbose_name="Студент")
-    test = models.ForeignKey('Test', on_delete=models.CASCADE, related_name='results', verbose_name="Тест")
+    test = models.ForeignKey('QuizModel', on_delete=models.CASCADE, related_name='results', verbose_name="Тест")
     score = models.DecimalField(max_digits=5, decimal_places=2, default=0.0, verbose_name="Баллы")
     completed_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата завершения")
 

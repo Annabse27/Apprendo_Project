@@ -22,7 +22,7 @@ from .paginators import CustomPageNumberPagination
 from .tasks import send_course_update_email  # Импортируем задачу
 
 # УЧЕБНЫЕ ТЕСТЫ
-from .models import Test, Question, Answer
+from .models import QuizModel, Question, Answer
 from .serializers import TestSerializer, QuestionSerializer, AnswerSerializer
 from .permissions import IsOwnerOrUnapproved
 from django.core.exceptions import PermissionDenied
@@ -31,7 +31,7 @@ from django.core.exceptions import PermissionDenied
 
 
 class CourseViewSet(viewsets.ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all().order_by('id')
     serializer_class = CourseSerializer
     pagination_class = CustomPageNumberPagination
 
@@ -54,7 +54,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         # Отладочный вывод для студента
         if user.groups.filter(name='Студент').exists():
             print(f"Student view: Total approved courses accessible: {queryset.count()}")
-        return queryset
+        return queryset.order_by('id')
+
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -72,6 +73,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
 
+# ---Вьюхи для рассылки---
+
 class CourseUpdateAPIView(generics.UpdateAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
@@ -88,6 +91,7 @@ class CourseUpdateAPIView(generics.UpdateAPIView):
             # Запускаем асинхронную задачу по отправке писем
             send_course_update_email.delay(course.title, subscriber_emails)
 
+# ---Вьюхи для подписки---
 
 class CourseSubscriptionAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Только авторизованные пользователи могут подписываться
@@ -176,15 +180,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
 # --- Вьюхи для УЧ ТЕСТОВ ---
 
 class TestViewSet(viewsets.ModelViewSet):
-    queryset = Test.objects.all()
+    queryset = QuizModel.objects.all()
     serializer_class = TestSerializer
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_queryset(self):
         user = self.request.user
         if user.groups.filter(name__in=['Администратор', 'Преподаватель']).exists():
-            return Test.objects.all()  # Все тесты для админов и преподавателей
-        return Test.objects.filter(status="approved")  # Только утвержденные тесты для остальных
+            return QuizModel.objects.all()  # Все тесты для админов и преподавателей
+        return QuizModel.objects.filter(status="approved")  # Только утвержденные тесты для остальных
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

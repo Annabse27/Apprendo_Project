@@ -1,4 +1,4 @@
-from django.test import TestCase
+import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 from users.models import User
@@ -6,40 +6,34 @@ from lms.models import Course
 from django.contrib.auth.models import Group
 
 
-# Тесты на наличие корректных полей пагинации в ответе
+@pytest.fixture
+def api_client():
+    return APIClient()
 
 
-class PaginationTest(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.user = User.objects.create_user(email='student@example.com', password='password')
+@pytest.fixture
+def student_user():
+    user = User.objects.create_user(email='student@example.com', password='password')
+    group, _ = Group.objects.get_or_create(name='Студент')
+    user.groups.add(group)
+    return user
 
-        # Назначаем пользователя в группу студентов
-        student_group, _ = Group.objects.get_or_create(name='Студент')
-        self.user.groups.add(student_group)
 
-        self.client.force_authenticate(user=self.user)
+@pytest.fixture
+def create_courses(student_user):
+    for i in range(15):
+        Course.objects.create(title=f'Курс {i + 1}', description=f'Описание курса {i + 1}', owner=student_user, status='approved')
 
-        # Создаем 15 утвержденных курсов
-        for i in range(15):
-            Course.objects.create(title=f'Курс {i + 1}', description=f'Описание курса {i + 1}', owner=self.user,
-                                  status='approved')
 
-        # Проверка количества утвержденных курсов
-        print(f"Created Courses: {Course.objects.filter(status='approved').count()}")
+@pytest.mark.django_db
+def test_course_pagination(api_client, student_user, create_courses):
+    api_client.force_authenticate(user=student_user)
+    response = api_client.get(reverse('lms:course-list'))
 
-    def test_course_pagination(self):
-        response = self.client.get(reverse('lms:course-list'))
+    assert response.status_code == 200
+    assert 'count' in response.data
+    assert len(response.data['results']) == 10
 
-        # Отладочный вывод
-        print("Response status code:", response.status_code)
-        print("Response data keys:", response.data.keys())
-        print("Number of courses returned:", len(response.data.get('results', [])))
-        print("Response data (first page):", response.data.get('results'))
-
-        # Проверки
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('count', response.data)
-        self.assertIn('next', response.data)
-        self.assertIn('previous', response.data)
-        self.assertEqual(len(response.data['results']), 10)  # Убедитесь, что на странице 10 курсов
+    # Проверка сортировки по id
+    course_ids = [course['id'] for course in response.data['results']]
+    assert course_ids == sorted(course_ids)

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Course, Lesson, Subscription
 from users.models import Payment
 from .validators import validate_youtube_url  # Импортируем валидатор
-from .models import Test, Question, Answer  # УЧЕБНЫЕ ТЕСТЫ
+from .models import QuizModel, Question, Answer  # УЧЕБНЫЕ ТЕСТЫ
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -18,6 +18,9 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    """
+        Сериализатор для модели КУРС.
+    """
     lessons_count = serializers.SerializerMethodField()
     lessons = LessonSerializer(many=True, read_only=True)
     is_subscribed = serializers.SerializerMethodField()
@@ -65,7 +68,7 @@ class TestSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)  # Поле только для чтения
 
     class Meta:
-        model = Test
+        model = QuizModel
         fields = ['id', 'title', 'description', 'course', 'questions', 'owner']
         extra_kwargs = {
             'owner': {'read_only': True}  # Только для чтения

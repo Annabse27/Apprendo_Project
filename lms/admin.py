@@ -1,7 +1,7 @@
 from django_celery_beat.models import PeriodicTask, IntervalSchedule
 from django.contrib import admin
 import nested_admin
-from .models import Course, Lesson, Subscription, Test, Question, Answer, TestResult, StudentAnswer
+from .models import Course, Lesson, Subscription, QuizModel, Question, Answer, TestResult, StudentAnswer
 from django.utils.safestring import mark_safe
 
 # Вложенные классы для отображения вопросов и ответов в админке
@@ -19,7 +19,7 @@ class QuestionInline(nested_admin.NestedStackedInline):
 
 
 class TestInline(nested_admin.NestedStackedInline):
-    model = Test
+    model = QuizModel
     extra = 1
     inlines = [QuestionInline]  # Включаем вопросы как вложенные внутри тестов
 

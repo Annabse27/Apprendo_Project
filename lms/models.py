@@ -164,17 +164,14 @@ class TestResult(models.Model):
         correct_answers_count = 0
         total_questions = self.test.questions.count()
 
-        # Перебираем ответы студента для проверки
         for answer in self.student_answers.all():
             if answer.question.question_type == "multiple_choice":
-                # Проверяем правильность для множественного выбора
                 if answer.selected_answer and answer.selected_answer.is_correct:
                     correct_answers_count += 1
             elif answer.question.question_type == "text":
-                # Обработка текстовых ответов (например, можно предусмотреть ручную проверку)
-                pass  # Текстовые вопросы можно пока не учитывать в расчете
+                if answer.is_approved:
+                    correct_answers_count += 1
 
-        # Рассчитываем процентный результат, избегая деления на ноль
         self.score = (correct_answers_count / total_questions * 100) if total_questions > 0 else 0
         self.save()
 
@@ -183,11 +180,13 @@ class StudentAnswer(models.Model):
     """
     Модель для хранения ответов студентов на вопросы теста.
     """
-    test_result = models.ForeignKey(TestResult, on_delete=models.CASCADE, related_name='student_answers', verbose_name="Результат теста")
+    test_result = models.ForeignKey(TestResult, on_delete=models.CASCADE, related_name='student_answers',
+                                    verbose_name="Результат теста")
     question = models.ForeignKey('Question', on_delete=models.CASCADE, verbose_name="Вопрос")
-    selected_answer = models.ForeignKey('Answer', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Выбранный ответ")
-    text_response = models.TextField(null=True, blank=True, verbose_name="Текстовый ответ")  # Для текстовых ответов
-    is_approved = models.BooleanField(default=False)  # Флаг для проверки правильности текстовых ответов
+    selected_answer = models.ForeignKey('Answer', on_delete=models.SET_NULL, null=True, blank=True,
+                                        verbose_name="Выбранный ответ")
+    text_response = models.TextField(null=True, blank=True, verbose_name="Текстовый ответ")
+    is_approved = models.BooleanField(default=False, verbose_name="Подтверждено")
 
     class Meta:
         verbose_name = "Ответ студента"
@@ -195,6 +194,7 @@ class StudentAnswer(models.Model):
 
     def __str__(self):
         return f"Ответ {self.test_result.student} на {self.question}"
+
 
     def is_correct(self):
         """

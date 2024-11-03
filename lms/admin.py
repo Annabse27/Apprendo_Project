@@ -2,54 +2,43 @@ from django_celery_beat.models import PeriodicTask, IntervalSchedule
 from django.contrib import admin
 import nested_admin
 from .models import Course, Lesson, Subscription, QuizModel, Question, Answer, TestResult, StudentAnswer
-from django.utils.safestring import mark_safe
 
 # Вложенные классы для отображения вопросов и ответов в админке
 
-
 class AnswerInline(nested_admin.NestedTabularInline):
     model = Answer
-    extra = 1  # Количество дополнительных полей для создания ответов
-
+    extra = 1
 
 class QuestionInline(nested_admin.NestedStackedInline):
     model = Question
     extra = 1
-    inlines = [AnswerInline]  # Включаем ответы как вложенные внутри вопросов
-
+    inlines = [AnswerInline]
 
 class TestInline(nested_admin.NestedStackedInline):
     model = QuizModel
     extra = 1
-    inlines = [QuestionInline]  # Включаем вопросы как вложенные внутри тестов
-
+    inlines = [QuestionInline]
 
 class StudentAnswerInline(admin.TabularInline):
     model = StudentAnswer
-    extra = 1
-    fields = ('question', 'selected_answer', 'text_response')
-    readonly_fields = ('question',)
+    extra = 0
+    fields = ('question', 'selected_answer', 'text_response', 'is_approved')
+    readonly_fields = ('question', 'selected_answer', 'text_response')
+    can_delete = False
+    show_change_link = False
 
-# Админ-класс для курса, включающий тесты, вопросы и ответы
+    def get_queryset(self, request):
+        # Упорядочивание ответов студентов по тестам и вопросам
+        qs = super().get_queryset(request)
+        return qs.order_by('test_result__test', 'question')
 
-
-@admin.register(Course)
-class CourseAdmin(nested_admin.NestedModelAdmin):
-    inlines = [TestInline]  # Включаем тесты как вложенные внутри курсов
-    list_display = ('title', 'status', 'owner')  # Отображаемые поля в списке курсов
-    list_filter = ('status', 'owner')  # Фильтр по статусу и создателю курса
-    search_fields = ('owner__email', 'title')  # Поля для поиска (включаем поиск по email владельца и названию курса)
-
-
-# Админ-класс для отображения результатов тестов вместе с ответами студентов
-
-
+# Админ-класс для TestResult, включающий ответы студентов
 @admin.register(TestResult)
 class TestResultAdmin(admin.ModelAdmin):
-    list_display = ('student', 'test', 'score', 'completed_at')  # Основные поля
-    inlines = [StudentAnswerInline]  # Включаем ответы студентов как вложенные в результаты теста
+    list_display = ('student', 'test', 'score', 'completed_at')
+    inlines = [StudentAnswerInline]
     actions = ['recalculate_scores']
-    list_filter = ('student',)  # Фильтр по студенту
+    list_filter = ('student', 'test')
 
     def recalculate_scores(self, request, queryset):
         for test_result in queryset:
@@ -57,11 +46,22 @@ class TestResultAdmin(admin.ModelAdmin):
         self.message_user(request, "Scores recalculated successfully.")
     recalculate_scores.short_description = "Пересчитать баллы для выбранных тестов"
 
+# Админ-класс для курса, включающий тесты, вопросы и ответы
+@admin.register(Course)
+class CourseAdmin(nested_admin.NestedModelAdmin):
+    inlines = [TestInline]
+    list_display = ('title', 'status', 'owner')
+    list_filter = ('status', 'owner')
+    search_fields = ('owner__email', 'title')
 
-# Регистрируем остальные модели
+# Убираем отдельную регистрацию StudentAnswer
+# admin.site.register(StudentAnswer)
+
 admin.site.register(Lesson)
 admin.site.register(Subscription)
-
+admin.site.register(QuizModel)
+#admin.site.register(Question)
+#admin.site.register(Answer)
 
 def setup_periodic_tasks():
     # Настройка интервала (каждые 10 секунд)
@@ -74,5 +74,5 @@ def setup_periodic_tasks():
     PeriodicTask.objects.create(
         interval=schedule,
         name='Test Task',
-        task='lms.tasks.sample_task',  # Путь к задаче
+        task='lms.tasks.sample_task',
     )

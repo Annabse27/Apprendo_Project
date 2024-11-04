@@ -17,3 +17,5 @@ try:
     print(response_json)
 except requests.exceptions.JSONDecodeError:
     print("Ошибка: Ответ не в формате JSON")
+
+

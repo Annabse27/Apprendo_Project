@@ -112,6 +112,7 @@ class Question(models.Model):
         related_name='owned_questions',
         verbose_name="Владелец"
     )
+    correct_answer = models.CharField(max_length=255, verbose_name="Правильный ответ", null=True, blank=True)
 
     class Meta:
         verbose_name = "Вопрос"
@@ -134,6 +135,7 @@ class Answer(models.Model):
         related_name='answers',
         verbose_name="Владелец"
     )
+    correct_answer = models.CharField(max_length=255, verbose_name="Правильный ответ", null=True, blank=True)
 
     class Meta:
         verbose_name = "Ответ"

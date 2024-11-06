@@ -45,12 +45,25 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 # УЧЕБНЫЕ ТЕСТЫ
 class AnswerSerializer(serializers.ModelSerializer):
+    is_correct = serializers.SerializerMethodField()
+
     class Meta:
         model = Answer
         fields = ['id', 'text', 'is_correct', 'question', 'owner']
         extra_kwargs = {
             'owner': {'read_only': True}  # Делаем owner только для чтения
         }
+
+    def get_is_correct(self, obj):
+        # Проверяем, совпадает ли ответ пользователя с правильным ответом
+        return obj.text == obj.question.correct_answer
+
+    def create(self, validated_data):
+        # Создаём ответ и добавляем проверку на корректность
+        answer = Answer.objects.create(**validated_data)
+        answer.is_correct = self.get_is_correct(answer)  # Проверяем правильность ответа
+        answer.save()
+        return answer
 
 
 class QuestionSerializer(serializers.ModelSerializer):

@@ -12,6 +12,51 @@
 - Асинхронные операции через Redis.
 - Поддержка PostgreSQL для хранения данных.
 
+## API Документация
+Описание эндпоинтов приложения.
+
+### Аутентификация
+- `POST /api/users/register/` — Регистрация пользователя.
+  ```bash
+  curl -H "Origin: http://localhost:3000" -X POST http://127.0.0.1:8000/api/users/register/
+  ```
+
+- `POST /api/users/login/` — Вход в систему и получение токена.
+  ```bash
+  curl -H "Origin: http://localhost:3000" -H "Content-Type: application/json" -X POST -d '{"email": "your_email@example.com", "password": "your_password"}' http://127.0.0.1:8000/api/users/login/
+  ```
+Используйте ваш майл и ваш пассворд.
+
+
+- `POST /api/token/refresh/` — Обновление токена.
+  ```bash
+  curl -H "Content-Type: application/json" -X POST -d '{"refresh": "your_refresh_token"}' http://127.0.0.1:8000/api/users/token/refresh/
+  ```
+Замените `<your_refresh_token>` на реальный JWT-токен, который можно получить после аутентификации.
+
+
+### Курсы
+- `GET /api/lms/courses/` — Получение списка курсов.
+  ```bash
+  curl -H "Origin: http://localhost:3000" \
+     -H "Authorization: Bearer <your_tocken>" \
+     -X GET http://127.0.0.1:8000/api/lms/courses/
+  ```
+Замените `<your_token>` на реальный JWT-токен, который можно получить после аутентификации.
+
+
+- `POST /api/lms/courses/` — Создание нового курса (только для преподавателей).
+  ```bash
+  curl -H "Origin: http://localhost:3000" -H "Authorization: Bearer <your_token>" -X POST -d '{"title": "Новый курс"}' http://127.0.0.1:8000/api/lms/courses/
+  ```
+Замените `<your_token>` на реальный JWT-токен, который можно получить после аутентификации.
+
+
+### Примечания
+- **Токены**: Access-токены используются для авторизации при запросах к защищённым ресурсам.
+- **Ошибки**: В случае неверного или истёкшего токена API вернёт статус `401 Unauthorized`.
+
+
 ## Установка и запуск
 
 ### Локальная установка

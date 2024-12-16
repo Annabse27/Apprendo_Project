@@ -18,8 +18,9 @@ SECRET_KEY = config('SECRET_KEY')
 # Секретный ключ для Stripe
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='sk_test_default_key')
 
-DEBUG = True
-ALLOWED_HOSTS = []
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 # Пользовательская модель пользователя
 AUTH_USER_MODEL = 'users.User'

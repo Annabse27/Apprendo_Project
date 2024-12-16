@@ -91,7 +91,7 @@ Icon?
 .TemporaryItems
 .trashes
 
-poetry.lock
+#poetry.lock
 
 #чтобы не забивать репозиторий отчетами
 coverage_report/

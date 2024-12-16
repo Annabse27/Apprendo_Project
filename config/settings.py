@@ -166,4 +166,18 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True # или указать конкретные допустимые домены (React, Vue, или другое) порт три тысячи/ домен продакшена
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+]
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Approndo API',
+    'DESCRIPTION': 'API Documentation for Approndo',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
+    'SECURITY': [{'Bearer': []}],  # только эта схема
+}
